@@ -115,7 +115,7 @@ export class Scanner {
   private current: number = 0;
   private line: number = 0;
 
-  constructor(source: string) {
+  constructor({ source }: { source: string }) {
     this.source = source;
   }
 
@@ -124,23 +124,7 @@ export class Scanner {
   }
 
   private advance(): string {
-    return this.source.substring(this.current++);
-  }
-
-  private addToken(type: TokenType) {
-    this.tokenizer({ type });
-  }
-
-  private scanToken(): void {
-    const char = this.advance();
-
-    const tokenType = tokenMap[char];
-    if (tokenType !== undefined) {
-      this.addToken(tokenType);
-    } else {
-      // Handle unexpected characters or more complex cases here
-      console.error(`Unexpected character: ${char}`);
-    }
+    return this.source[this.current++];
   }
 
   private tokenizer({ type, literal }: { type: TokenType; literal?: object }) {
@@ -149,8 +133,42 @@ export class Scanner {
       new Token({ type, lexeme: text, line: this.line, literal })
     );
   }
+
+  private addToken(type: TokenType) {
+    this.tokenizer({ type });
+  }
+
+  private scanToken(): void {
+    const char = this.advance();
+    console.log({ char });
+
+    const tokenType = tokenMap[char];
+    console.log({ tokenType });
+    if (tokenType !== undefined) {
+      this.addToken(tokenType);
+    } else {
+      // Handle unexpected characters or more complex cases here
+      console.error(`Unexpected character: ${char}`);
+    }
+  }
+
+  scanTokens() {
+    while (!this.isEnd()) {
+      this.start = this.current;
+      this.scanToken();
+    }
+
+    this.tokens.push(
+      new Token({
+        type: TokenType.EOF,
+        lexeme: "",
+        line: this.line,
+        literal: undefined,
+      })
+    );
+  }
 }
 
-const interpret = new Interpreter();
+// const interpret = new Interpreter();
 
-interpret.runFile();
+// interpret.runFile();
