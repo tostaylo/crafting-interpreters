@@ -129,7 +129,12 @@ export class Scanner {
     return true;
   }
 
-  private getTokenType(char: string): TokenType {
+  private peek() {
+    if (this.isEnd()) return "\0";
+    return this.currentChar();
+  }
+
+  private getTokenType(char: string): TokenType | undefined {
     switch (char) {
       case "(":
         return TokenType.LEFT_PAREN;
@@ -171,6 +176,25 @@ export class Scanner {
           ? TokenType.GREATER_EQUAL
           : TokenType.GREATER;
 
+      case "/":
+        if (this.isMatch({ expected: "/" })) {
+          // A comment goes until the end of the line.
+          while (this.peek() != "\n" && !this.isEnd()) this.advance();
+          return undefined;
+        } else {
+          return TokenType.SLASH;
+        }
+
+      case " ":
+      case "\r":
+      case "\t":
+        // Ignore whitespace.
+        return undefined;
+
+      case "\n":
+        this.line++;
+        return undefined;
+
       default:
         throw new Error(`Unknown character: ${char}`);
     }
@@ -192,7 +216,7 @@ export class Scanner {
     const char = this.advance();
 
     const tokenType = this.getTokenType(char);
-    if (tokenType >= 0) {
+    if (tokenType !== undefined && tokenType >= 0) {
       this.addToken(tokenType);
       return;
     }
