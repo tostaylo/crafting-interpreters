@@ -195,20 +195,48 @@ export class Scanner {
         this.line++;
         return undefined;
 
+      case '"':
+        return this.string();
+
       default:
         throw new Error(`Unknown character: ${char}`);
     }
   }
 
+  private string() {
+    // supports multi line strings
+    while (this.peek() != '"' && !this.isEnd()) {
+      if (this.peek() == "\n") {
+        this.line++;
+      }
+      this.advance();
+    }
+
+    if (this.isEnd()) {
+      // Interpreter.error(line, "Unterminated string.");
+      console.log(this.line, "Unterminated String");
+      return;
+    }
+
+    // The closing ".
+    this.advance();
+
+    return TokenType.STRING;
+  }
+
   private tokenizer({ type, literal }: { type: TokenType; literal?: object }) {
-    const text = this.source.substring(this.start, this.current);
+    let text;
+    if (type === TokenType.STRING) {
+      text = this.source.substring(this.start + 1, this.current - 1);
+    }
+    text = this.source.substring(this.start, this.current);
 
     this.tokens.push(
       new Token({ type, lexeme: text, line: this.line, literal })
     );
   }
 
-  private addToken(type: TokenType) {
+  private addToken({ type, text }: { type: TokenType; text?: string }) {
     this.tokenizer({ type });
   }
 
@@ -217,7 +245,7 @@ export class Scanner {
 
     const tokenType = this.getTokenType(char);
     if (tokenType !== undefined && tokenType >= 0) {
-      this.addToken(tokenType);
+      this.addToken({ type: tokenType });
       return;
     }
   }

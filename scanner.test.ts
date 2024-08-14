@@ -107,4 +107,27 @@ test("scans and creates tokens while ignoring comments", () => {
   expect(scanner.tokens).toStrictEqual([resultToken, eofToken]);
 });
 
+test("scans and creates tokens from strings", () => {
+  const source = '"This is a string"';
+  const scanner = new Scanner({ source });
+
+  scanner.scanTokens();
+
+  const resultToken = new Token({
+    type: TokenType.STRING,
+    lexeme: '"This is a string"',
+    line: 0,
+    literal: undefined,
+  });
+
+  const eofToken = new Token({
+    type: TokenType.EOF,
+    lexeme: "",
+    line: 0,
+    literal: undefined,
+  });
+
+  expect(scanner.tokens).toStrictEqual([resultToken, eofToken]);
+});
+
 // Should I test private methods?
