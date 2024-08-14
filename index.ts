@@ -71,19 +71,6 @@ export enum TokenType {
   EOF,
 }
 
-const tokenMap: { [char: string]: TokenType } = {
-  "(": TokenType.LEFT_PAREN,
-  ")": TokenType.RIGHT_PAREN,
-  "{": TokenType.LEFT_BRACE,
-  "}": TokenType.RIGHT_BRACE,
-  ",": TokenType.COMMA,
-  ".": TokenType.DOT,
-  "-": TokenType.MINUS,
-  "+": TokenType.PLUS,
-  ";": TokenType.SEMICOLON,
-  "*": TokenType.STAR,
-};
-
 type TokenParams = {
   type: TokenType;
   lexeme: string;
@@ -127,8 +114,71 @@ export class Scanner {
     return this.source[this.current++];
   }
 
+  private currentChar(): string {
+    return this.source[this.current];
+  }
+
+  private isMatch({ expected }: { expected: string }): boolean {
+    if (this.isEnd()) return false;
+    if (this.currentChar() != expected) return false;
+
+    // seems a bit weird this has two responsibilities
+    // one to progress char consumption
+    // the other to return boolean
+    this.current++;
+    return true;
+  }
+
+  private getTokenType(char: string): TokenType {
+    switch (char) {
+      case "(":
+        return TokenType.LEFT_PAREN;
+      case ")":
+        return TokenType.RIGHT_PAREN;
+      case "{":
+        return TokenType.LEFT_BRACE;
+      case "}":
+        return TokenType.RIGHT_BRACE;
+      case ",":
+        return TokenType.COMMA;
+      case ".":
+        return TokenType.DOT;
+      case "-":
+        return TokenType.MINUS;
+      case "+":
+        return TokenType.PLUS;
+      case ";":
+        return TokenType.SEMICOLON;
+      case "*":
+        return TokenType.STAR;
+      case "!":
+        return this.isMatch({ expected: "=" })
+          ? TokenType.BANG_EQUAL
+          : TokenType.BANG;
+
+      case "=":
+        return this.isMatch({ expected: "=" })
+          ? TokenType.EQUAL_EQUAL
+          : TokenType.EQUAL;
+
+      case "<":
+        return this.isMatch({ expected: "=" })
+          ? TokenType.LESS_EQUAL
+          : TokenType.LESS;
+
+      case ">":
+        return this.isMatch({ expected: "=" })
+          ? TokenType.GREATER_EQUAL
+          : TokenType.GREATER;
+
+      default:
+        throw new Error(`Unknown character: ${char}`);
+    }
+  }
+
   private tokenizer({ type, literal }: { type: TokenType; literal?: object }) {
     const text = this.source.substring(this.start, this.current);
+
     this.tokens.push(
       new Token({ type, lexeme: text, line: this.line, literal })
     );
@@ -140,15 +190,11 @@ export class Scanner {
 
   private scanToken(): void {
     const char = this.advance();
-    console.log({ char });
 
-    const tokenType = tokenMap[char];
-    console.log({ tokenType });
-    if (tokenType !== undefined) {
+    const tokenType = this.getTokenType(char);
+    if (tokenType >= 0) {
       this.addToken(tokenType);
-    } else {
-      // Handle unexpected characters or more complex cases here
-      console.error(`Unexpected character: ${char}`);
+      return;
     }
   }
 
