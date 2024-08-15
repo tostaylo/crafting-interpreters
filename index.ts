@@ -4,8 +4,6 @@ export class Interpreter {
     const file = Bun.file(path);
 
     const text = await file.text();
-
-    console.log({ text });
   }
 
   report({
@@ -17,7 +15,7 @@ export class Interpreter {
     where: string;
     message: string;
   }) {
-    console.log({ line, where, message });
+    console.error({ line, where, message });
   }
 }
 
@@ -71,17 +69,18 @@ export enum TokenType {
   EOF,
 }
 
+type Literal = string | object | number;
 type TokenParams = {
   type: TokenType;
   lexeme: string;
   line: number;
-  literal?: object;
+  literal?: Literal;
 };
 export class Token {
   public type: TokenType;
   public lexeme: string;
   public line: number;
-  public literal?: object;
+  public literal?: Literal;
 
   constructor({ type, lexeme, line, literal }: TokenParams) {
     this.type = type;
@@ -118,6 +117,11 @@ export class Scanner {
     return this.source[this.current];
   }
 
+  private isDigit(c: string): boolean {
+    const asNum = Number(c);
+    return asNum >= 0 && asNum <= 9;
+  }
+
   private isMatch({ expected }: { expected: string }): boolean {
     if (this.isEnd()) return false;
     if (this.currentChar() != expected) return false;
@@ -129,9 +133,56 @@ export class Scanner {
     return true;
   }
 
-  private peek() {
+  private peek(): string {
     if (this.isEnd()) return "\0";
     return this.currentChar();
+  }
+
+  private peekNext(): string {
+    if (this.current + 1 >= this.source.length) {
+      return "\0";
+    }
+
+    return this.source[this.current + 1];
+  }
+
+  private number(): TokenType {
+    while (this.isDigit(this.peek())) {
+      this.advance();
+    }
+
+    // Look for a fractional part.
+    if (this.peek() == "." && this.isDigit(this.peekNext())) {
+      // Consume the "."
+      this.advance();
+
+      while (this.isDigit(this.peek())) {
+        this.advance();
+      }
+    }
+
+    return TokenType.NUMBER;
+  }
+
+  private string(): TokenType | undefined {
+    // supports multi line strings
+    while (this.peek() != '"' && this.peek() != "'" && !this.isEnd()) {
+      if (this.peek() == "\n") {
+        this.line++;
+      }
+      this.advance();
+    }
+
+    if (this.isEnd()) {
+      // Interpreter.error(line, "Unterminated string.");
+      console.error(this.line, "Unterminated String");
+      return;
+    }
+
+    // The closing ".
+    this.advance();
+
+    return TokenType.STRING;
   }
 
   private getTokenType(char: string): TokenType | undefined {
@@ -195,48 +246,33 @@ export class Scanner {
         this.line++;
         return undefined;
 
+      case "'":
       case '"':
         return this.string();
 
       default:
+        if (this.isDigit(char)) {
+          return this.number();
+        }
         throw new Error(`Unknown character: ${char}`);
     }
   }
 
-  private string() {
-    // supports multi line strings
-    while (this.peek() != '"' && !this.isEnd()) {
-      if (this.peek() == "\n") {
-        this.line++;
-      }
-      this.advance();
-    }
-
-    if (this.isEnd()) {
-      // Interpreter.error(line, "Unterminated string.");
-      console.log(this.line, "Unterminated String");
-      return;
-    }
-
-    // The closing ".
-    this.advance();
-
-    return TokenType.STRING;
-  }
-
-  private tokenizer({ type, literal }: { type: TokenType; literal?: object }) {
-    let text;
+  private tokenizer({ type, literal }: { type: TokenType; literal?: Literal }) {
+    const lexeme = this.source.substring(this.start, this.current);
+    let lit = literal;
     if (type === TokenType.STRING) {
-      text = this.source.substring(this.start + 1, this.current - 1);
+      lit = this.source.substring(this.start + 1, this.current - 1);
+    } else if (type === TokenType.NUMBER) {
+      lit = Number(this.source.substring(this.start, this.current));
     }
-    text = this.source.substring(this.start, this.current);
 
     this.tokens.push(
-      new Token({ type, lexeme: text, line: this.line, literal })
+      new Token({ type, lexeme: lexeme as any, line: this.line, literal: lit })
     );
   }
 
-  private addToken({ type, text }: { type: TokenType; text?: string }) {
+  private addToken({ type }: { type: TokenType }) {
     this.tokenizer({ type });
   }
 

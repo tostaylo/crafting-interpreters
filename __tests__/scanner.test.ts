@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { Scanner, TokenType, Token } from ".";
+import { Scanner, TokenType, Token } from "..";
+import { thisIsAString } from "./__mocks__/escaped-strings";
 
 test("contains a source when passed one", () => {
   const source = "()";
@@ -108,16 +109,38 @@ test("scans and creates tokens while ignoring comments", () => {
 });
 
 test("scans and creates tokens from strings", () => {
-  const source = '"This is a string"';
-  const scanner = new Scanner({ source });
+  const scanner = new Scanner({ source: thisIsAString });
 
   scanner.scanTokens();
 
   const resultToken = new Token({
     type: TokenType.STRING,
-    lexeme: '"This is a string"',
+    lexeme: thisIsAString,
+    line: 0,
+    literal: "This is a string",
+  });
+
+  const eofToken = new Token({
+    type: TokenType.EOF,
+    lexeme: "",
     line: 0,
     literal: undefined,
+  });
+
+  expect(scanner.tokens).toStrictEqual([resultToken, eofToken]);
+});
+
+test("scans and creates tokens from numbers", () => {
+  const source = "90.091";
+  const scanner = new Scanner({ source });
+
+  scanner.scanTokens();
+
+  const resultToken = new Token({
+    type: TokenType.NUMBER,
+    lexeme: "90.091",
+    line: 0,
+    literal: 90.091,
   });
 
   const eofToken = new Token({
