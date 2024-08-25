@@ -2,6 +2,13 @@ import { expect, test } from "bun:test";
 import { Scanner, TokenType, Token } from "..";
 import { thisIsAString } from "./__mocks__/escaped-strings";
 
+const eofToken = new Token({
+  type: TokenType.EOF,
+  lexeme: "",
+  line: 0,
+  literal: undefined,
+});
+
 test("contains a source when passed one", () => {
   const source = "()";
   const scanner = new Scanner({ source });
@@ -18,13 +25,6 @@ test("scans and creates tokens from one character strings containing one lexeme"
   const resultToken = new Token({
     type: TokenType.LEFT_PAREN,
     lexeme: "(",
-    line: 0,
-    literal: undefined,
-  });
-
-  const eofToken = new Token({
-    type: TokenType.EOF,
-    lexeme: "",
     line: 0,
     literal: undefined,
   });
@@ -52,13 +52,6 @@ test("scans and creates tokens from two character strings containing two lexemes
     literal: undefined,
   });
 
-  const eofToken = new Token({
-    type: TokenType.EOF,
-    lexeme: "",
-    line: 0,
-    literal: undefined,
-  });
-
   expect(scanner.tokens).toStrictEqual([first, second, eofToken]);
 });
 
@@ -71,13 +64,6 @@ test("scans and creates tokens from two character strings containing one lexeme"
   const resultToken = new Token({
     type: TokenType.GREATER_EQUAL,
     lexeme: ">=",
-    line: 0,
-    literal: undefined,
-  });
-
-  const eofToken = new Token({
-    type: TokenType.EOF,
-    lexeme: "",
     line: 0,
     literal: undefined,
   });
@@ -98,13 +84,6 @@ test("scans and creates tokens while ignoring comments", () => {
     literal: undefined,
   });
 
-  const eofToken = new Token({
-    type: TokenType.EOF,
-    lexeme: "",
-    line: 0,
-    literal: undefined,
-  });
-
   expect(scanner.tokens).toStrictEqual([resultToken, eofToken]);
 });
 
@@ -118,13 +97,6 @@ test("scans and creates tokens from strings", () => {
     lexeme: thisIsAString,
     line: 0,
     literal: "This is a string",
-  });
-
-  const eofToken = new Token({
-    type: TokenType.EOF,
-    lexeme: "",
-    line: 0,
-    literal: undefined,
   });
 
   expect(scanner.tokens).toStrictEqual([resultToken, eofToken]);
@@ -143,9 +115,34 @@ test("scans and creates tokens from numbers", () => {
     literal: 90.091,
   });
 
-  const eofToken = new Token({
-    type: TokenType.EOF,
-    lexeme: "",
+  expect(scanner.tokens).toStrictEqual([resultToken, eofToken]);
+});
+
+test("scans and creates tokens from keywords var", () => {
+  const source = "var";
+  const scanner = new Scanner({ source });
+
+  scanner.scanTokens();
+
+  const resultToken = new Token({
+    type: TokenType.VAR,
+    lexeme: "var",
+    line: 0,
+    literal: undefined,
+  });
+
+  expect(scanner.tokens).toStrictEqual([resultToken, eofToken]);
+});
+
+test("scans and creates tokens from keywords function", () => {
+  const source = "function";
+  const scanner = new Scanner({ source });
+
+  scanner.scanTokens();
+
+  const resultToken = new Token({
+    type: TokenType.FUNCTION,
+    lexeme: "function",
     line: 0,
     literal: undefined,
   });

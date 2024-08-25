@@ -53,7 +53,7 @@ export enum TokenType {
   CLASS,
   ELSE,
   FALSE,
-  FUN,
+  FUNCTION,
   FOR,
   IF,
   NIL,
@@ -94,12 +94,33 @@ export class Token {
   }
 }
 
+type Keywords = Map<string, TokenType>;
+
 export class Scanner {
   source: string;
   tokens: Token[] = [];
   private start: number = 0;
   private current: number = 0;
   private line: number = 0;
+
+  private static readonly keywords: Keywords = new Map<string, TokenType>([
+    ["and", TokenType.AND],
+    ["class", TokenType.CLASS],
+    ["else", TokenType.ELSE],
+    ["false", TokenType.FALSE],
+    ["for", TokenType.FOR],
+    ["function", TokenType.FUNCTION],
+    ["if", TokenType.IF],
+    ["nil", TokenType.NIL],
+    ["or", TokenType.OR],
+    ["print", TokenType.PRINT],
+    ["return", TokenType.RETURN],
+    ["super", TokenType.SUPER],
+    ["this", TokenType.THIS],
+    ["true", TokenType.TRUE],
+    ["var", TokenType.VAR],
+    ["while", TokenType.WHILE],
+  ]);
 
   constructor({ source }: { source: string }) {
     this.source = source;
@@ -120,6 +141,14 @@ export class Scanner {
   private isDigit(c: string): boolean {
     const asNum = Number(c);
     return asNum >= 0 && asNum <= 9;
+  }
+
+  private isAlpha(c: string): boolean {
+    return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c == "_";
+  }
+
+  private isAlphaNumeric(c: string): boolean {
+    return this.isAlpha(c) || this.isDigit(c);
   }
 
   private isMatch({ expected }: { expected: string }): boolean {
@@ -144,6 +173,12 @@ export class Scanner {
     }
 
     return this.source[this.current + 1];
+  }
+
+  private identifier() {
+    while (this.isAlphaNumeric(this.peek())) this.advance();
+
+    return TokenType.IDENTIFIER;
   }
 
   private number(): TokenType {
@@ -253,6 +288,8 @@ export class Scanner {
       default:
         if (this.isDigit(char)) {
           return this.number();
+        } else if (this.isAlpha(char)) {
+          return this.identifier();
         }
         throw new Error(`Unknown character: ${char}`);
     }
@@ -260,15 +297,30 @@ export class Scanner {
 
   private tokenizer({ type, literal }: { type: TokenType; literal?: Literal }) {
     const lexeme = this.source.substring(this.start, this.current);
+
+    let t = type;
     let lit = literal;
+
     if (type === TokenType.STRING) {
       lit = this.source.substring(this.start + 1, this.current - 1);
     } else if (type === TokenType.NUMBER) {
       lit = Number(this.source.substring(this.start, this.current));
+    } else if (type === TokenType.IDENTIFIER) {
+      let text = this.source.substring(this.start, this.current);
+      let identifierType = Scanner.keywords.get(text);
+
+      if (identifierType) {
+        t = identifierType;
+      }
     }
 
     this.tokens.push(
-      new Token({ type, lexeme: lexeme as any, line: this.line, literal: lit })
+      new Token({
+        type: t,
+        lexeme: lexeme as any,
+        line: this.line,
+        literal: lit,
+      })
     );
   }
 
