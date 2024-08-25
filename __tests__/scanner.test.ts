@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { Scanner, TokenType, Token } from "..";
+import { TokenType, Token } from "../token";
+import { Scanner } from "../scanner";
 import { thisIsAString } from "./__mocks__/escaped-strings";
 
 const eofToken = new Token({
