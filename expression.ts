@@ -1,8 +1,10 @@
 import { Token } from "./token";
 
-export abstract class Expression {}
+export abstract class Expression {
+  abstract accept<R>(visitor: Visitor<R>): R;
+}
 
-interface Visitor<R> {
+export interface Visitor<R> {
   visitBinaryExpr(expr: Binary): R;
   visitUnaryExpr(expr: Unary): R;
   visitLiteralExpr(expr: Literal): R;
